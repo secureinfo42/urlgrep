@@ -196,7 +196,7 @@ if __name__ == '__main__':
   ### Arguments parsing ###########################################################################
 
   def usage(errcode):
-    print("Usage:\n%s [-f|-u|-s] [-H] [-h]" % APP)
+    print("\nUsage: %s [-f|-u|-s] [-H] [-h]" % APP)
     print("")
     print(" -f  : read file")
     print(" -s  : read stdin")
@@ -204,9 +204,9 @@ if __name__ == '__main__':
     print(" -H  : grab href,src")
     print(" -h  : this sheet")
     print("")
-    print("Note:\nread args can be cumulative")
+    print("Note: read args can be cumulative")
     print("")
-    print("Exemple:\ndmesg |%s -f /var/log/apache2/site.com.log.1 -u 'https://logger.site.com/?t=20230101'")
+    print("Exemple:\ndmesg |%s -f /var/log/apache2/site.com.log.1 -u 'https://logger.site.com/?t=20230101'" % APP)
     print("")
     exit(errcode)
 
