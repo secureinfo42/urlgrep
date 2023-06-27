@@ -341,10 +341,3 @@ if __name__ == '__main__':
   url_grep(data, protocol, url, filetype, clean_mode, hrefs)
 
 
-
-
-
-
-
-
-
