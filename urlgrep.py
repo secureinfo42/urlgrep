@@ -10,19 +10,12 @@ from sys import argv, stdin, stderr
 
 try:
   from bs4 import BeautifulSoup as bs
-except:
-  print("ERROR: you need to :")
-  print("pip install bs4")
-  exit(1)
-
-try:
   import requests
 except:
-  print("ERROR: you need to :")
-  print("pip install requests")
+  print("ERROR: some modules are missing. To fix it :\npip install bs4 requests")
   exit(1)
 
-APP = argv[0].split("/")[-1]
+APP = __file__.split("/")[-1]
 
 
 
@@ -32,83 +25,10 @@ APP = argv[0].split("/")[-1]
 #
 ##
 
-PROTOCOLS = {
-  'about':"about://",
-  'acap':"acap:",
-  'afp':"afp://",
-  'bitcoin':"bitcoin:",
-  'cap':"cap:",
-  # 'data':"data:",
-  'dhcp':"dhcp://",
-  'dict':"dict:",
-  'dns':"dns://",
-  'ed2k':"ed2k://",
-  'file':"file:///",
-  'finger':"finger:",
-  'fish':"fish:",
-  'ftp':"ftp://",
-  'ftps':"ftps://",
-  'git':"git://",
-  'git+http':'git+http://',
-  'git+https':'git+https://',
-  'go':"go://",
-  'gopher':"gopher://",
-  'h323':"h323://",
-  'http':"http://",
-  'https':"https://",
-  'icmp':"icmp://",
-  'imap':"imap://",
-  'irc':"irc://",
-  'irc6':"irc6://",
-  'ircs':"ircs://",
-  'ldap':"ldap://",
-  'ldaps':"ldaps://",
-  'magnet':"magnet:",
-  'mailto':"mailto:",
-  'mms':"mms://",
-  'ncp':"ncp://",
-  'news':"news://",
-  'nfs':"nfs://",
-  'nntp':"nntp://",
-  'nntps':"nntps://",
-  'ntp':"ntp://",
-  'pop':"pop://",
-  'prospero':"prospero:",
-  'rdp':"rdp://",
-  'redis':"redis://",
-  'rlogin':"rlogin://",
-  'rsync':"rsync://",
-  'rtmp':"rtmp://",
-  'rtsp':"rtsp://",
-  'sftp':"sftp://",
-  'sip':"sip:",
-  'smb':"smb://",
-  'smtp':"smtp://",
-  'smtps':"smtps://",
-  'snews':"snews://",
-  'snmp':"snmp://",
-  'spotify':"spotify:",
-  'ssh':"ssh://",
-  'sshfs':"sshfs://",
-  'stmp':"stmp://",
-  'svn':"svn://",
-  'svn+ssh':"svn+ssh://",
-  'tcp':"tcp://",
-  'tel':"tel://",
-  'telnet':"telnet://",
-  'tftp':"tftp://",
-  'udp':"udp://",
-  'vcap':"vcap://",
-  'wais':"wais://",
-  'webcal':"webcal://",
-  'ws':"ws://",
-  'wss':"wss://",
-  'xmpp':"xmpp:",
-  # 'xmpp':"xmpp://",
-  'z39.50r':"z39.50r://",
-  'z39.50s':"z39.50s://"
-}
+PROTOCOLS_P1 = r'(acap|bitcoin|cap|data|dict|finger|fish|magnet|mailto|prospero|xmpp|sip|spotify):'
+PROTOCOLS_P2 = r'(about|afp|dhcp|dns|ed2k|ftp|ftps|git\+http|git\+https|git|go|gopher|h323|http|https|icmp|imap|irc6|irc|ircs|ldap|ldaps|mms|ncp|news|nfs|nntp|nntps|ntp|pop|rdp|redis|rlogin|rsync|rtmp|rtsp|sftp|smb|smtp|smtps|snews|snmp|ssh|sshfs|stmp|svn\+ssh|svn|tcp|tel|telnet|tftp|udp|vcap|wais|webcal|ws|wss|xmpp|z39\.50r|z39\.50s)://'
 
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UGLY_SEPARATOR = [
   '&quot;',
   '&#039;',
@@ -129,21 +49,13 @@ UGLY_SEPARATOR = [
 ##
 
 def _build_rgx():
-  # regex = r"(?i)\b(("
-  # for protocol in PROTOCOLS:
-  #   regex += PROTOCOLS[protocol] + "|"
-  # # regex = regex[:-1] + r")[a-zA-Z0-9_,;=\+\%\&\?\-/\(\)\[\]\"\']{1,})[\b\'\"]"
-  # regex = regex[:-1] + r")\S+)[^\"][^'][\W+\\\b\S]"
-  # # regex = regex[:-1] + r")[a-z0-9_,;=\+\%\&\?\-/]{1,})"
-  # regex = re.compile(regex)
-
-  regex = r'(?i)((?=('
-  for protocol in PROTOCOLS:
-    regex += r"(?<!-)((?<=)"+PROTOCOLS[protocol] + ")|"
-  regex = regex[:-1] + r'))([a-zA-Z0-9\.\-\+:_]+)(?:([^\<\>\{\}][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+)))[\\\'\"\b\s]' # s\W\"\'\b]'
+  regex = r'(?i)(\b(?<!-)('+PROTOCOLS_P1+r')|(file:///)|('+PROTOCOLS_P2+r')([a-zA-Z0-9\.\-\+:_]+)([^\<\>\{\}\"][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+))[\\\'\"\b\s]'
+  print(regex)
   return(regex)
 
-
+def print_rgx():
+  print( _build_rgx() )
+  exit(0)
 
 
 ###################################################################################################
@@ -159,7 +71,7 @@ def get_protocol(protocol):
   except Exception as e:
     perror(e)
     exit(1)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def check_protocol(protocol,debug=False):
   global PROTOCOLS
   try:
@@ -169,16 +81,38 @@ def check_protocol(protocol,debug=False):
     return(0)
   except KeyError:
     return(1)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def check_clean_mode(mode):
+  score = 0
+  if mode == "punc":  score += 1
+  if mode == "":      score += 1
+  if score == 1:
+    return(mode)
+  else:
+    usage(1)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def list_protocol():
   global PROTOCOLS
   for protocol in PROTOCOLS:
     print(protocol)
   exit(0)
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+def unhtmlentities(txt):
+  txt = txt.replace('&quote;','"')
+  txt = txt.replace('&#039;' ,"'")
+  txt = txt.replace('&gt;'   ,">")
+  txt = txt.replace('&lt;'   ,"<")
+  txt = txt.replace('&nbsp;' ," ")
+  txt = txt.replace('&amp;' ,"")
+  return(txt)
 
-def perror(errtxt):
-  errtxt = c.Fore.RED + c.Style.BRIGHT + f"Error: {errtxt}" + c.Style.NORMAL + c.Fore.RESET + "\n"
-  stderr.write(errtxt)
+
+
+###################################################################################################
+#
+# URL treatments
+#
+##
 
 def _add_url(soup,_tag,_property,hrefs=False):
   array_tmp = []
@@ -189,7 +123,7 @@ def _add_url(soup,_tag,_property,hrefs=False):
     else:
       array_tmp.append(__tag[_property])
   return(array_tmp)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def unhtml_url(url,clean_mode=""):
   if clean_mode == "all":
     for key in UGLY_SEPARATOR:
@@ -204,16 +138,7 @@ def unhtml_url(url,clean_mode=""):
       if key in url:
         url = url.split(key)[0]
   return(url)
-
-def unhtmlentities(txt):
-  txt = txt.replace('&quote;','"')
-  txt = txt.replace('&#039;' ,"'")
-  txt = txt.replace('&gt;'   ,">")
-  txt = txt.replace('&lt;'   ,"<")
-  txt = txt.replace('&nbsp;' ," ")
-  txt = txt.replace('&amp;' ,"")
-  return(txt)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def grab_urls(data,clean_mode="",hrefs=False):
   global PROTOCOLS
   urls = []
@@ -233,24 +158,34 @@ def grab_urls(data,clean_mode="",hrefs=False):
       urls.append(unhtml_url(url,clean_mode))
   return set(urls)
 
+
+
+###################################################################################################
+#
+# Data treatments
+#
+##
+
 def sanitize_file(data):
   encoding = chardet.detect(data)
   try:
     encoding = encoding['encoding'].lower()
     if encoding != 'utf-8':
-      return( str(data.decode(encoding).encode('utf-8')) )
+      data = data.decode(encoding).encode('utf-8')
   except:
     try:
-      return( sanitize_file(data.replace(b"\x00",b"")) )
+      data = data.replace(b"\x00",b"")
     except:
-      return(str(data))
-
+      pass
+  return(str(data))
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def read_file(filename):
   try:
-    return( open(filename,"rb").read() )
+    data = open(filename,"rb").read()
+    return(data)
   except Exception as e:
     perror(e)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def read_url(url):
   try:
     s = requests.session()
@@ -258,7 +193,7 @@ def read_url(url):
     return( r.content.encode() )
   except Exception as e:
     perror(e)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def read_stdin():
   try:
     ret = stdin.read().encode()
@@ -266,19 +201,27 @@ def read_stdin():
   except Exception as e:
     perror(e)
 
-def check_clean_mode(mode):
-  score = 0
-  if mode == "punc":  score += 1
-  if mode == "":      score += 1
-  if score == 1:
-    return(mode)
-  else:
-    usage(1)
+
+
+###################################################################################################
+#
+# Main
+#
+##
+
 
 def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
+  """
+  data : data to treat
+  protocol : extract only protocol 'https, http, ...' - cf. PROTOCOLS
+  url : in case data are retrieved from URL
+  clean_mode : 'punc' = cut at punctuation 
+  hrefs : retrieve also relative URLS in src, href
+  """
   urls = []
   if data:
     data = sanitize_file(data)
+
     for url in set(grab_urls(data,clean_mode,hrefs)):
       if re.match(r"^"+protocol,url) : # if rgx == "", then match all
         if filetype:
@@ -290,22 +233,16 @@ def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
             urls.append(url)
   return(urls)
 
-
-
-###################################################################################################
-#
-# Main
-#
-##
-
 if __name__ == '__main__':
+
+  # Functions only called in CLI ######################################################################################
 
   def usage(errcode=1):
     global APP
     app = f"{c.Fore.MAGENTA}{c.Style.BRIGHT}{APP}{c.Style.NORMAL}{c.Fore.RESET}"
     print(f"\nUsage:")
     print(f"------")
-    print("%s [-u url|-f file] [-p protocol|-l] [-t extension] [-c clean_mode] [-C]" % app)
+    print("%s [-u url|-f file] [-p protocol|-l] [-t extension] [-c clean_mode] [-C] [-x]" % app)
     print("")
     print(f"\nOptions:")
     print(f"--------")
@@ -317,6 +254,7 @@ if __name__ == '__main__':
     print(f"-c | --clean_mode : the way URL are cleaned : {c.Fore.YELLOW}punc (cut at ?,&,#…){c.Fore.RESET} or nothing")
     print(f"-H | --href       : include hrefs, src with relative URL inside")
     print("-t | --filetype   : match for file type (regex: pdf$)")
+    print("-x | --regex      : print regex")
     print("                  : default, read stding and grab any urls from any protocols")
     print("")
     print("Notes:")
@@ -352,13 +290,16 @@ if __name__ == '__main__':
       if opt in ("-c","--clean"):     clean_mode = check_clean_mode(arg)
       if opt in ("-C","--check"):     exit( check_protocol(arg,debug=True) )
       if opt in ("-H","--href"):      include_href=True
+      if opt in ("-x","--regex"):     print_rgx()
       if opt in ("-h","--help"):      usage(0)
       if opt in ("-l","--list"):      list_protocol()
 
     return( data, protocol, url, filetype, clean_mode, include_href )
 
+  # Input processing ##################################################################################################
 
   data,protocol,url,filetype,clean_mode,hrefs = parse_args(argv)
+
   urls = url_grep(data, protocol, url, filetype, clean_mode, hrefs)
   for url in sorted(urls):
     print(url)
