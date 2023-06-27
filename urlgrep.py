@@ -248,8 +248,6 @@ def usage(errcode=1):
   print("%s -c mailto" % app)
   exit(errcode)
 
-import chardet
-
 def sanitize_to_utf8(data):
 
   encoding = chardet.detect(data)
@@ -279,6 +277,15 @@ def read_stdin():
   except Exception as e:
     perror(e)
 
+def check_clean_mode(mode):
+  score = 0
+  if mode == "punc":  score += 1
+  if mode == "":      score += 1
+  if score == 1:
+    return(mode)
+  else:
+    usage(1)
+
 def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
   if data:
     urls = []
@@ -293,15 +300,6 @@ def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
             urls.append(url)
     for url in sorted(urls):
       print(url)
-
-def check_clean_mode(mode):
-  score = 0
-  if mode == "punc":  score += 1
-  if mode == "":      score += 1
-  if score == 1:
-    return(mode)
-  else:
-    usage(1)
 
 def parse_args(argv):
 
@@ -341,5 +339,12 @@ if __name__ == '__main__':
   data,protocol,url,filetype,clean_mode,hrefs = parse_args(argv)
   data = sanitize_to_utf8(data)
   url_grep(data, protocol, url, filetype, clean_mode, hrefs)
+
+
+
+
+
+
+
 
 
