@@ -289,6 +289,7 @@ def check_clean_mode(mode):
 def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
   if data:
     urls = []
+    data = sanitize_to_utf8(data)
     for url in set(grab_urls(data,clean_mode,hrefs)):
       if re.match(r"^"+protocol,url) : # if rgx == "", then match all
         if filetype:
@@ -337,7 +338,6 @@ def parse_args(argv):
 if __name__ == '__main__':
 
   data,protocol,url,filetype,clean_mode,hrefs = parse_args(argv)
-  data = sanitize_to_utf8(data)
   url_grep(data, protocol, url, filetype, clean_mode, hrefs)
 
 
