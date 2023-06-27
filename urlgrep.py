@@ -28,7 +28,7 @@ APP = argv[0].split("/")[-1]
 
 ###################################################################################################
 #
-# Funcz
+# Globalz
 #
 ##
 
@@ -120,19 +120,13 @@ UGLY_SEPARATOR = [
   '"',
 ]
 
-def perror(errtxt):
-  errtxt = c.Fore.RED + c.Style.BRIGHT + f"Error: {errtxt}" + c.Style.NORMAL + c.Fore.RESET + "\n"
-  stderr.write(errtxt)
 
-def _add_url(soup,_tag,_property,hrefs=False):
-  array_tmp = []
-  for __tag in soup.find_all(_tag, href=True):
-    if hrefs == False:
-      if '://' in __tag[_property]:
-        array_tmp.append(__tag[_property])
-    else:
-      array_tmp.append(__tag[_property])
-  return(array_tmp)
+
+###################################################################################################
+#
+# Regex
+#
+##
 
 def _build_rgx():
   # regex = r"(?i)\b(("
@@ -148,6 +142,53 @@ def _build_rgx():
     regex += r"(?<!-)((?<=)"+PROTOCOLS[protocol] + ")|"
   regex = regex[:-1] + r'))([a-zA-Z0-9\.\-\+:_]+)(?:([^\<\>\{\}][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+)))[\\\'\"\b\s]' # s\W\"\'\b]'
   return(regex)
+
+
+
+
+###################################################################################################
+#
+# Checks
+#
+##
+
+def get_protocol(protocol):
+  global PROTOCOLS
+  try:
+    return(PROTOCOLS[protocol])
+  except Exception as e:
+    perror(e)
+    exit(1)
+
+def check_protocol(protocol,debug=False):
+  global PROTOCOLS
+  try:
+    proto = PROTOCOLS[protocol]
+    if debug:
+      print(proto)
+    return(0)
+  except KeyError:
+    return(1)
+
+def list_protocol():
+  global PROTOCOLS
+  for protocol in PROTOCOLS:
+    print(protocol)
+  exit(0)
+
+def perror(errtxt):
+  errtxt = c.Fore.RED + c.Style.BRIGHT + f"Error: {errtxt}" + c.Style.NORMAL + c.Fore.RESET + "\n"
+  stderr.write(errtxt)
+
+def _add_url(soup,_tag,_property,hrefs=False):
+  array_tmp = []
+  for __tag in soup.find_all(_tag, href=True):
+    if hrefs == False:
+      if '://' in __tag[_property]:
+        array_tmp.append(__tag[_property])
+    else:
+      array_tmp.append(__tag[_property])
+  return(array_tmp)
 
 def unhtml_url(url,clean_mode=""):
   if clean_mode == "all":
@@ -192,76 +233,17 @@ def grab_urls(data,clean_mode="",hrefs=False):
       urls.append(unhtml_url(url,clean_mode))
   return set(urls)
 
-def get_protocol(protocol):
-  global PROTOCOLS
-  try:
-    return(PROTOCOLS[protocol])
-  except Exception as e:
-    perror(e)
-    exit(1)
-
-def check_protocol(protocol,debug=False):
-  global PROTOCOLS
-  try:
-    proto = PROTOCOLS[protocol]
-    if debug:
-      print(proto)
-    return(0)
-  except KeyError:
-    return(1)
-
-def list_protocol():
-  global PROTOCOLS
-  for protocol in PROTOCOLS:
-    print(protocol)
-  exit(0)
-
-def usage(errcode=1):
-  global APP
-  app = f"{c.Fore.MAGENTA}{c.Style.BRIGHT}{APP}{c.Style.NORMAL}{c.Fore.RESET}"
-  print(f"\nUsage:")
-  print(f"------")
-  print("%s [-u url|-f file] [-p protocol|-l] [-t extension] [-c clean_mode] [-C]" % app)
-  print("")
-  print(f"\nOptions:")
-  print(f"--------")
-  print("-u | --url        : retrieve HTML from URL and grep into")
-  print("-f | --filename   : read file and try to find matches")
-  print("-p | --protocol   : match one if the known protocols")
-  print("-l | --list       : list known protocols")
-  print("-C | --check      : check if protocol is known")
-  print(f"-c | --clean_mode : the way URL are cleaned : {c.Fore.YELLOW}punc (cut at ?,&,#…){c.Fore.RESET} or nothing")
-  print(f"-H | --href       : include hrefs, src with relative URL inside")
-  print("-t | --filetype   : match for file type (regex: pdf$)")
-  print("                  : default, read stding and grab any urls from any protocols")
-  print("")
-  print("Notes:")
-  print("------")
-  print(f"{c.Fore.YELLOW}filename{c.Fore.RESET}, {c.Fore.YELLOW}protocol{c.Fore.RESET} and {c.Fore.YELLOW}stdin{c.Fore.RESET} can be cumulative" )
-  print("" )
-  print("" )
-  print("Exemples:")
-  print("---------")
-  print("%s -u 'http://www.monsite.com'" % app)
-  print("curl -s 'http://www.monsite.com' | %s -t pdf" % app)
-  print("cat grabme.html | %s -p https -t pdf -f grabme2.html -s -u 'http://www.monsite.com/" % app)
-  print("%s -c mailto" % app)
-  exit(errcode)
-
 def sanitize_file(data):
   encoding = chardet.detect(data)
   try:
     encoding = encoding['encoding'].lower()
     if encoding != 'utf-8':
-      data = data.decode(encoding).encode('utf-8')
+      return( str(data.decode(encoding).encode('utf-8')) )
   except:
-    data = data.replace(b"\x00",b"")
-    pass
-  data = str(data)
-  # data = "\n".join(data.split("\\n"))
-  # data = "\n".join(data.split(" "))
-  # print(data)
-  return(data)
+    try:
+      return( sanitize_file(data.replace(b"\x00",b"")) )
+    except:
+      return(str(data))
 
 def read_file(filename):
   try:
@@ -308,31 +290,6 @@ def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
             urls.append(url)
   return(urls)
 
-def parse_args(argv):
-
-  data, protocol, url, filetype, clean_mode = b"", ".", "", "", ""
-  got_src, include_href = False, False
-
-  for i in range(1,len(argv)):
-
-    try:
-      opt,arg = argv[i],argv[i+1]
-    except IndexError:
-      opt = argv[i]
-
-    if opt in ("-p","--protocol"):  protocol = get_protocol(arg)
-    if opt in ("-t","--filetype"):  filetype = arg
-    if opt in ("-f","--file"):      data += read_file(arg)
-    if opt in ("-u","--url"):       data += read_url(arg)
-    if opt in ("-s","--stdin"):     data += read_stdin()
-    if opt in ("-c","--clean"):     clean_mode = check_clean_mode(arg)
-    if opt in ("-C","--check"):     exit( check_protocol(arg,debug=True) )
-    if opt in ("-H","--href"):      include_href=True
-    if opt in ("-h","--help"):      usage(0)
-    if opt in ("-l","--list"):      list_protocol()
-
-  return( data, protocol, url, filetype, clean_mode, include_href )
-
 
 
 ###################################################################################################
@@ -342,6 +299,64 @@ def parse_args(argv):
 ##
 
 if __name__ == '__main__':
+
+  def usage(errcode=1):
+    global APP
+    app = f"{c.Fore.MAGENTA}{c.Style.BRIGHT}{APP}{c.Style.NORMAL}{c.Fore.RESET}"
+    print(f"\nUsage:")
+    print(f"------")
+    print("%s [-u url|-f file] [-p protocol|-l] [-t extension] [-c clean_mode] [-C]" % app)
+    print("")
+    print(f"\nOptions:")
+    print(f"--------")
+    print("-u | --url        : retrieve HTML from URL and grep into")
+    print("-f | --filename   : read file and try to find matches")
+    print("-p | --protocol   : match one if the known protocols")
+    print("-l | --list       : list known protocols")
+    print("-C | --check      : check if protocol is known")
+    print(f"-c | --clean_mode : the way URL are cleaned : {c.Fore.YELLOW}punc (cut at ?,&,#…){c.Fore.RESET} or nothing")
+    print(f"-H | --href       : include hrefs, src with relative URL inside")
+    print("-t | --filetype   : match for file type (regex: pdf$)")
+    print("                  : default, read stding and grab any urls from any protocols")
+    print("")
+    print("Notes:")
+    print("------")
+    print(f"{c.Fore.YELLOW}filename{c.Fore.RESET}, {c.Fore.YELLOW}protocol{c.Fore.RESET} and {c.Fore.YELLOW}stdin{c.Fore.RESET} can be cumulative" )
+    print("" )
+    print("" )
+    print("Exemples:")
+    print("---------")
+    print("%s -u 'http://www.monsite.com'" % app)
+    print("curl -s 'http://www.monsite.com' | %s -t pdf" % app)
+    print("cat grabme.html | %s -p https -t pdf -f grabme2.html -s -u 'http://www.monsite.com/" % app)
+    print("%s -c mailto" % app)
+    exit(errcode)
+
+  def parse_args(argv):
+
+    data, protocol, url, filetype, clean_mode = b"", ".", "", "", ""
+    got_src, include_href = False, False
+
+    for i in range(1,len(argv)):
+
+      try:
+        opt,arg = argv[i],argv[i+1]
+      except IndexError:
+        opt = argv[i]
+
+      if opt in ("-p","--protocol"):  protocol = get_protocol(arg)
+      if opt in ("-t","--filetype"):  filetype = arg
+      if opt in ("-f","--file"):      data += read_file(arg)
+      if opt in ("-u","--url"):       data += read_url(arg)
+      if opt in ("-s","--stdin"):     data += read_stdin()
+      if opt in ("-c","--clean"):     clean_mode = check_clean_mode(arg)
+      if opt in ("-C","--check"):     exit( check_protocol(arg,debug=True) )
+      if opt in ("-H","--href"):      include_href=True
+      if opt in ("-h","--help"):      usage(0)
+      if opt in ("-l","--list"):      list_protocol()
+
+    return( data, protocol, url, filetype, clean_mode, include_href )
+
 
   data,protocol,url,filetype,clean_mode,hrefs = parse_args(argv)
   urls = url_grep(data, protocol, url, filetype, clean_mode, hrefs)
