@@ -50,7 +50,6 @@ UGLY_SEPARATOR = [
 
 def _build_rgx():
   regex = r'(?i)(\b(?<!-)('+PROTOCOLS_P1+r')|(file:///)|('+PROTOCOLS_P2+r')([a-zA-Z0-9\.\-\+:_]+)([^\<\>\{\}\"][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+))[\\\'\"\b\s]'
-  print(regex)
   return(regex)
 
 def print_rgx():
