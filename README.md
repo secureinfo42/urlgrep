@@ -1,32 +1,31 @@
 # Synopsis
 
+```sh
+Usage: urlgrep [-f|-u|-s] [-H] [-h]
+
+ -f  : read file
+ -s  : read stdin
+ -u  : read url
+ -H  : grab href,src
+ -h  : this sheet
+
+Note: read args can be cumulative
+
+Exemple:
+dmesg |urlgrep -f /var/log/apache2/site.com.log.1 -u 'https://logger.site.com/?t=20230101'
 ```
-Usage:
-------
-urlgrep [-u url|-f file] [-p protocol|-l] [-t extension] [-c clean_mode] [-C]
 
+# What 
 
-Options:
---------
--u | --url        : retrieve HTML from URL and grep into
--f | --filename   : read file and try to find matches
--p | --protocol   : match one if the known protocols
--l | --list       : list known protocols
--C | --check      : check if protocol is known
--c | --clean_mode : the way URL are cleaned : punc (cut at ?,&,#…) or nothing
--H | --href       : include hrefs, src with relative URL inside
--t | --filetype   : match for file type (regex: pdf$)
-                  : default, read stding and grab any urls from any protocols
+Script can grab URL into binary file, from URL, stdin, file
 
-Notes:
-------
-filename, protocol and stdin can be cumulative
+# RegEx
 
+```py
+PROTOCOLS_P1 = r'((afp|ed2k|ftps?|git|git\+https?|go|gopher|h323|https?|imaps?|irc[s6]?|ldaps?|mms|ncp|news|nfs|nntps?|ntp|rdp|rsync|rtsp|sftp|smb|smtp?s|snmps?|ssh|sshfs|stmp|svn|tcp|tel|telnet|tftp|vnc|webcal|wss?|xmpp|(ms|xcon)\-\w+(\-\w+)?)://)'
+### word:adresse
+PROTOCOLS_P2  = r'((about|magnet|mailto|prospero|xmpp|sip|tel|phone|market|itms|spotify):)'
+###  
+PROTOCOLS_P3  = r'(file:///)'
 
-Exemples:
----------
-urlgrep -u 'http://www.monsite.com'
-curl -s 'http://www.monsite.com' | urlgrep -t pdf
-cat grabme.html | urlgrep -p https -t pdf -f grabme2.html -s -u 'http://www.monsite.com/
-urlgrep -c mailto
 ```
