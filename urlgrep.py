@@ -25,9 +25,13 @@ APP = __file__.split("/")[-1]
 #
 ##
 
-PROTOCOLS_P1  = r'((afp|ftps?|git\+https?|git|https?|imaps?|irc[s6]?|ldaps?|mms|nfs|rdp|rsync|rtsp|sftp|snmps?|svn|vnc|webcal|wss?|xmpp|(ms|xcon)\-\w+(\-\w+)?)://)'
-PROTOCOLS_P2  = r'((about|magnet|mailto|prospero|xmpp|sip|spotify):)'
+### word://adresse
+PROTOCOLS_P1 = r'((afp|ed2k|ftps?|git|git\+https?|go|gopher|h323|https?|imaps?|irc[s6]?|ldaps?|mms|ncp|news|nfs|nntps?|ntp|rdp|rsync|rtsp|sftp|smb|smtp?s|snmps?|ssh|sshfs|stmp|svn|tcp|tel|telnet|tftp|vnc|webcal|wss?|xmpp|(ms|xcon)\-\w+(\-\w+)?)://)'
+### word:adresse
+PROTOCOLS_P2  = r'((about|magnet|mailto|prospero|xmpp|sip|tel|phone|market|itms|spotify):)'
+###  
 PROTOCOLS_P3  = r'(file:///)'
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 def _build_rgx():
   regex  = r'(?i)\b((?<=)('
@@ -39,7 +43,7 @@ def _build_rgx():
   regex += r')([a-zA-Z0-9_/=%\+\-\.\?\&\;,\[\]\(\)])+)\b'
   regex  = re.compile(regex)
   return(regex)
-
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 def print_rgx():
   msg  = ""
   msg += "\nRegex : "+c.Fore.CYAN
@@ -159,7 +163,6 @@ def print_urls(urls):
 def grep_urls(data,include_href=False):
 
   urls = []
-
   data = sanitize_data(data)
 
   found = re.findall(_build_rgx(),data)
