@@ -13,7 +13,8 @@ Options:
 -p | --protocol   : match one if the known protocols
 -l | --list       : list known protocols
 -C | --check      : check if protocol is known
--c | --clean_mode : the way URL are cleaned : quote, punc, all or nothing
+-c | --clean_mode : the way URL are cleaned : punc (cut at ?,&,#…) or nothing
+-H | --href       : include hrefs, src with relative URL inside
 -t | --filetype   : match for file type (regex: pdf$)
                   : default, read stding and grab any urls from any protocols
 
