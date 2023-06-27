@@ -145,8 +145,8 @@ def _build_rgx():
 
   regex = r'(?i)((?=('
   for protocol in PROTOCOLS:
-    regex += PROTOCOLS[protocol] + "|"
-  regex = regex[:-1] + r'))([a-zA-Z0-9\.\-\+:_]+)(?:([^\<\>\{\}][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+)))[\'\"\b\s]' # s\W\"\'\b]'
+    regex += r"(?<!-)((?<=)"+PROTOCOLS[protocol] + ")|"
+  regex = regex[:-1] + r'))([a-zA-Z0-9\.\-\+:_]+)(?:([^\<\>\{\}][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+)))[\\\'\"\b\s]' # s\W\"\'\b]'
   return(regex)
 
 def unhtml_url(url,clean_mode=""):
@@ -248,13 +248,20 @@ def usage(errcode=1):
   print("%s -c mailto" % app)
   exit(errcode)
 
-def sanitize_to_utf8(data):
-
+def sanitize_file(data):
   encoding = chardet.detect(data)
-  encoding = encoding['encoding'].lower()
-  if encoding != 'utf-8':
-    data = data.decode(encoding).encode('utf-8')
-  return(str(data))
+  try:
+    encoding = encoding['encoding'].lower()
+    if encoding != 'utf-8':
+      data = data.decode(encoding).encode('utf-8')
+  except:
+    data = data.replace(b"\x00",b"")
+    pass
+  data = str(data)
+  # data = "\n".join(data.split("\\n"))
+  # data = "\n".join(data.split(" "))
+  # print(data)
+  return(data)
 
 def read_file(filename):
   try:
@@ -289,7 +296,7 @@ def check_clean_mode(mode):
 def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
   urls = []
   if data:
-    data = sanitize_to_utf8(data)
+    data = sanitize_file(data)
     for url in set(grab_urls(data,clean_mode,hrefs)):
       if re.match(r"^"+protocol,url) : # if rgx == "", then match all
         if filetype:
@@ -340,3 +347,4 @@ if __name__ == '__main__':
   urls = url_grep(data, protocol, url, filetype, clean_mode, hrefs)
   for url in sorted(urls):
     print(url)
+
