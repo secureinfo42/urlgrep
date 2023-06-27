@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 from sys import argv, stdin, stderr
 import getopt
 import re
@@ -21,7 +22,6 @@ except:
   exit(1)
 
 APP = argv[0].split("/")[-1]
-
 
 
 
@@ -123,21 +123,29 @@ def perror(errtxt):
   errtxt = c.Fore.RED + c.Style.BRIGHT + f"Error: {errtxt}" + c.Style.NORMAL + c.Fore.RESET + "\n"
   stderr.write(errtxt)
 
-def _add_url(soup,_tag,_property):
+def _add_url(soup,_tag,_property,hrefs=False):
   array_tmp = []
   for __tag in soup.find_all(_tag, href=True):
-    if '://' in __tag[_property]:
+    if hrefs == False:
+      if '://' in __tag[_property]:
+        array_tmp.append(__tag[_property])
+    else:
       array_tmp.append(__tag[_property])
   return(array_tmp)
 
 def _build_rgx():
-  regex = r"(?i)\b(("
+  # regex = r"(?i)\b(("
+  # for protocol in PROTOCOLS:
+  #   regex += PROTOCOLS[protocol] + "|"
+  # # regex = regex[:-1] + r")[a-zA-Z0-9_,;=\+\%\&\?\-/\(\)\[\]\"\']{1,})[\b\'\"]"
+  # regex = regex[:-1] + r")\S+)[^\"][^'][\W+\\\b\S]"
+  # # regex = regex[:-1] + r")[a-z0-9_,;=\+\%\&\?\-/]{1,})"
+  # regex = re.compile(regex)
+
+  regex = r'(?i)((?=('
   for protocol in PROTOCOLS:
     regex += PROTOCOLS[protocol] + "|"
-  # regex = regex[:-1] + r")[a-zA-Z0-9_,;=\+\%\&\?\-/\(\)\[\]\"\']{1,})[\b\'\"]"
-  regex = regex[:-1] + r")\S+)[\W+\\\b\S\'\"]"
-  # regex = regex[:-1] + r")[a-z0-9_,;=\+\%\&\?\-/]{1,})"
-  regex = re.compile(regex)
+  regex = regex[:-1] + r'))([a-zA-Z0-9\.\-\+:_]+)(?:([^\<\>\{\}][a-zA-Z0-9,;:_/\?\.\#\&\-\+=]+)))[\'\"\b\s]' # s\W\"\'\b]'
   return(regex)
 
 def unhtml_url(url,clean_mode=""):
@@ -155,17 +163,27 @@ def unhtml_url(url,clean_mode=""):
         url = url.split(key)[0]
   return(url)
 
-def grab_urls(data,clean_mode=""):
+def unhtmlentities(txt):
+  txt = txt.replace('&quote;','"')
+  txt = txt.replace('&#039;' ,"'")
+  txt = txt.replace('&gt;'   ,">")
+  txt = txt.replace('&lt;'   ,"<")
+  txt = txt.replace('&nbsp;' ," ")
+  txt = txt.replace('&amp;' ,"")
+  return(txt)
+
+def grab_urls(data,clean_mode="",hrefs=False):
   global PROTOCOLS
   urls = []
-  soup = bs(data,features="html.parser")
+  soup = bs("<html>"+data+"</html>",features="html5lib")
   regex = _build_rgx()
   tmp_urls  = re.findall(regex, data)
   tmp_urls  = [u[0] for u in tmp_urls ]
-  tmp_urls += _add_url(soup, 'a',   'href')
-  tmp_urls += _add_url(soup, 'src', 'img')
-  tmp_urls += _add_url(soup, 'src', 'script')
+  tmp_urls += _add_url(soup, 'a',   'href',hrefs)
+  tmp_urls += _add_url(soup, 'src', 'img',hrefs)
+  tmp_urls += _add_url(soup, 'src', 'script',hrefs)
   for url in tmp_urls:
+    url = unhtmlentities(url)
     if re.findall(r";\w+://",url):
       for sub_url in url.split(';'):
         urls.append(unhtml_url(sub_url,clean_mode))
@@ -211,7 +229,8 @@ def usage(errcode=1):
   print("-p | --protocol   : match one if the known protocols")
   print("-l | --list       : list known protocols")
   print("-C | --check      : check if protocol is known")
-  print(f"-c | --clean_mode : the way URL are cleaned : {c.Fore.YELLOW}quote{c.Fore.RESET}, {c.Fore.YELLOW}punc{c.Fore.RESET}, {c.Fore.YELLOW}all{c.Fore.RESET} or nothing")
+  print(f"-c | --clean_mode : the way URL are cleaned : {c.Fore.YELLOW}punc (cut at ?,&,#…){c.Fore.RESET} or nothing")
+  print(f"-H | --href       : include hrefs, src with relative URL inside")
   print("-t | --filetype   : match for file type (regex: pdf$)")
   print("                  : default, read stding and grab any urls from any protocols")
   print("")
@@ -249,10 +268,10 @@ def read_stdin():
   except Exception as e:
     perror(e)
 
-def url_grep(data,protocol=".",url="",filetype="",clean_mode=""):
+def url_grep(data,protocol=".",url="",filetype="",clean_mode="",hrefs=False):
   if data:
     urls = []
-    for url in set(grab_urls(data,clean_mode)):
+    for url in set(grab_urls(data,clean_mode,hrefs)):
       if re.match(r"^"+protocol,url) : # if rgx == "", then match all
         if filetype:
           if re.findall(r"\."+filetype+r"(\?|$)",url):
@@ -266,9 +285,7 @@ def url_grep(data,protocol=".",url="",filetype="",clean_mode=""):
 
 def check_clean_mode(mode):
   score = 0
-  if mode == "all":   score += 1
   if mode == "punc":  score += 1
-  if mode == "quote": score += 1
   if mode == "":      score += 1
   if score == 1:
     return(mode)
@@ -278,7 +295,7 @@ def check_clean_mode(mode):
 def parse_args(argv):
 
   data, protocol, url, filetype, clean_mode = "", ".", "", "", ""
-  got_src = False
+  got_src, include_href = False, False
 
   for i in range(1,len(argv)):
 
@@ -294,10 +311,11 @@ def parse_args(argv):
     if opt in ("-s","--stdin"):     data += read_stdin()
     if opt in ("-c","--clean"):     clean_mode = check_clean_mode(arg)
     if opt in ("-C","--check"):     exit( check_protocol(arg,debug=True) )
+    if opt in ("-H","--href"):      include_href=True
     if opt in ("-h","--help"):      usage(0)
     if opt in ("-l","--list"):      list_protocol()
 
-  return( data, protocol, url, filetype, clean_mode )
+  return( data, protocol, url, filetype, clean_mode, include_href )
 
 
 
@@ -309,9 +327,6 @@ def parse_args(argv):
 
 if __name__ == '__main__':
 
-  data,protocol,url,filetype,clean_mode = parse_args(argv)
-  url_grep(data, protocol, url, filetype, clean_mode)
-
-
-
+  data,protocol,url,filetype,clean_mode,hrefs = parse_args(argv)
+  url_grep(data, protocol, url, filetype, clean_mode, hrefs)
 
