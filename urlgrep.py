@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
 import os
-from sys import argv, stdin, stderr
 import getopt
 import re
 import getopt
+import chardet
 import colorama as c
+from sys import argv, stdin, stderr
 
 try:
   from bs4 import BeautifulSoup as bs
@@ -247,9 +248,19 @@ def usage(errcode=1):
   print("%s -c mailto" % app)
   exit(errcode)
 
+import chardet
+
+def sanitize_to_utf8(data):
+
+  encoding = chardet.detect(data)
+  encoding = encoding['encoding'].lower()
+  if encoding != 'utf-8':
+    data = data.decode(encoding).encode('utf-8')
+  return(str(data))
+
 def read_file(filename):
   try:
-    return( open(filename,"r").read() )
+    return( open(filename,"rb").read() )
   except Exception as e:
     perror(e)
 
@@ -257,13 +268,13 @@ def read_url(url):
   try:
     s = requests.session()
     r = s.get(url)
-    return( r.content )
+    return( r.content.encode() )
   except Exception as e:
     perror(e)
 
 def read_stdin():
   try:
-    ret = stdin.read()
+    ret = stdin.read().encode()
     return(ret)
   except Exception as e:
     perror(e)
@@ -294,7 +305,7 @@ def check_clean_mode(mode):
 
 def parse_args(argv):
 
-  data, protocol, url, filetype, clean_mode = "", ".", "", "", ""
+  data, protocol, url, filetype, clean_mode = b"", ".", "", "", ""
   got_src, include_href = False, False
 
   for i in range(1,len(argv)):
@@ -328,5 +339,7 @@ def parse_args(argv):
 if __name__ == '__main__':
 
   data,protocol,url,filetype,clean_mode,hrefs = parse_args(argv)
+  data = sanitize_to_utf8(data)
   url_grep(data, protocol, url, filetype, clean_mode, hrefs)
+
 
